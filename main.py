@@ -12,6 +12,8 @@ import matplotlib.pyplot as plt
 import plotly.express as px
 import plotly.graph_objects as go
 import numpy as np
+from plotly.subplots import make_subplots
+
 
 # path_to_file = 'Relatos 2022 sample.txt'
 path_to_file = 'Reports.txt'
@@ -32,32 +34,6 @@ text = text.replace('\n\n', '\n')
 texts = text.split(sep)
 texts = [t for t in texts if len(t) > 1]
 texts
-
-
-# %%
-
-
-foo_str = """|Iniciado: 19770101 16h48 Aubade
-This is a special way of being afraid
-No trick dispels. Religion used to try,
-That vast moth-eaten musical brocade
-Created to pretend we never die,
-And specious stuff that says No rational being
-Can fear a thing it will not feel, not seeing
-That this is what we fear—no sight, no sound,
-No touch or taste or smell, nothing to think with,
-Nothing to love or link with,
-The anaesthetic from which none come round.
-
-|Atualizado: 20240512 23h53
-And so it stays just on the edge of vision,
-A small unfocused blur, a standing chill
-That slows each impulse down to indecision. 
-
-|Atualizado: 20240513 00h16
-Most things may never happen: this one will.
-
-|========================================================="""
 
 # %%
 
@@ -249,8 +225,6 @@ for i, report in enumerate(report_list):
 # %%
 
 
-df = pd.concat([r.to_df() for r in report_list], ignore_index=True)
-df
 
 
 # %% ####################################################################
@@ -274,6 +248,8 @@ axes.set_xticklabels(axes.get_xticklabels(), rotation=0, ha='right')
 # %% ####################################################################
 #                    Data Processing
 # #######################################################################
+
+df = pd.concat([r.to_df() for r in report_list], ignore_index=True)
 
 df['length'] = df['text'].apply(len)
 
@@ -336,3 +312,321 @@ fig.update_layout(
 )
 
 # %%
+
+# %% ####################################################################
+#                    .
+# #######################################################################
+
+
+# import datetime
+# import plotly.graph_objs as go
+# import numpy as np
+# from plotly.subplots import make_subplots
+
+# def display_year(z,
+#                  year: int = None,
+#                  month_lines: bool = True,
+#                  fig=None,
+#                  row: int = None):
+    
+#     if year is None:
+#         year = datetime.datetime.now().year
+    
+#     data = np.ones(365) * np.nan
+#     data[:len(z)] = z
+    
+
+#     d1 = datetime.date(year, 1, 1)
+#     d2 = datetime.date(year, 12, 31)
+
+#     delta = d2 - d1
+    
+#     month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+#     month_days =   [31,    28,    31,     30,    31,     30,    31,    31,    30,    31,    30,    31]
+#     month_positions = (np.cumsum(month_days) - 15)/7
+
+#     dates_in_year = [d1 + datetime.timedelta(i) for i in range(delta.days+1)] #gives me a list with datetimes for each day a year
+#     weekdays_in_year = [i.weekday() for i in dates_in_year] #gives [0,1,2,3,4,5,6,0,1,2,3,4,5,6,…] (ticktext in xaxis dict translates this to weekdays
+    
+#     weeknumber_of_dates = [int(i.strftime("%V")) if not (int(i.strftime("%V")) == 1 and i.month == 12) else 53
+#                            for i in dates_in_year] #gives [1,1,1,1,1,1,1,2,2,2,2,2,2,2,…] name is self-explanatory
+#     text = [str(i) for i in dates_in_year] #gives something like list of strings like ‘2018-01-25’ for each date. Used in data trace to make good hovertext.
+#     #4cc417 green #347c17 dark green
+#     colorscale=[[False, '#eeeeee'], [True, '#76cf63']]
+    
+#     # handle end of year
+    
+
+#     data = [
+#         go.Heatmap(
+#             x=weeknumber_of_dates,
+#             y=weekdays_in_year,
+#             z=data,
+#             text=text,
+#             hoverinfo='text',
+#             xgap=3, # this
+#             ygap=3, # and this is used to make the grid-like apperance
+#             showscale=False,
+#             colorscale=colorscale
+#         )
+#     ]
+    
+        
+#     if month_lines:
+#         kwargs = dict(
+#             mode='lines',
+#             line=dict(
+#                 color='#9e9e9e',
+#                 width=1
+#             ),
+#             hoverinfo='skip'
+            
+#         )
+#         for date, dow, wkn in zip(dates_in_year,
+#                                   weekdays_in_year,
+#                                   weeknumber_of_dates):
+#             if date.day == 1:
+#                 data += [
+#                     go.Scatter(
+#                         x=[wkn-.5, wkn-.5],
+#                         y=[dow-.5, 6.5],
+#                         **kwargs
+#                     )
+#                 ]
+#                 if dow:
+#                     data += [
+#                     go.Scatter(
+#                         x=[wkn-.5, wkn+.5],
+#                         y=[dow-.5, dow - .5],
+#                         **kwargs
+#                     ),
+#                     go.Scatter(
+#                         x=[wkn+.5, wkn+.5],
+#                         y=[dow-.5, -.5],
+#                         **kwargs
+#                     )
+#                 ]
+                    
+                    
+#     layout = go.Layout(
+#         title='activity chart',
+#         height=250,
+#         yaxis=dict(
+#             showline=False, showgrid=False, zeroline=False,
+#             tickmode='array',
+#             ticktext=['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+#             tickvals=[0, 1, 2, 3, 4, 5, 6],
+#             autorange="reversed"
+#         ),
+#         xaxis=dict(
+#             showline=False, showgrid=False, zeroline=False,
+#             tickmode='array',
+#             ticktext=month_names,
+#             tickvals=month_positions
+#         ),
+#         font={'size':10, 'color':'#9e9e9e'},
+#         plot_bgcolor=('#fff'),
+#         margin = dict(t=40),
+#         showlegend=False
+#     )
+
+#     if fig is None:
+#         fig = go.Figure(data=data, layout=layout)
+#     else:
+#         fig.add_traces(data, rows=[(row+1)]*len(data), cols=[1]*len(data))
+#         fig.update_layout(layout)
+#         fig.update_xaxes(layout['xaxis'])
+#         fig.update_yaxes(layout['yaxis'])
+    
+#     return fig
+
+
+# def display_years(z, years):
+#     fig = make_subplots(rows=len(years), cols=1, subplot_titles=years)
+#     for i, year in enumerate(years):
+#         data = z[i*365 : (i+1)*365]
+#         display_year(data, year=year, fig=fig, row=i)
+#         fig.update_layout(height=250*len(years))
+        
+#     return fig
+
+    
+# z = np.random.randint(2, size=(500,))
+
+# display_years(z, (2020,))
+
+# from plotly_calplot import calplot
+
+# fig = calplot(df, x="date", y="length")
+# fig.show()
+# # you can also adjust layout and your usual plotly stuff
+
+
+
+# %%
+
+hourless_df = df.copy()
+hourless_df['date'] = hourless_df['date'].dt.floor('d')
+
+# %%
+
+min_date = hourless_df['date'].min()
+max_date = hourless_df['date'].max()
+# create a list of dates between min and max date
+date_range = pd.date_range(start=min_date, end=max_date, freq='D')
+date_df = pd.DataFrame(date_range, columns=['date'])
+
+# merge date_df with df
+foo_df = pd.merge(date_df, hourless_df, on='date', how='left')
+foo_df['_value'] = 0
+# where text is not null, set _value to 1
+foo_df.loc[foo_df['text'].notnull(), '_value'] = 100
+
+# apply rolling mean to _value
+# foo_df['_value'] = foo_df['_value'].rolling(window=7, center=True).mean()
+foo_df['_value'] = foo_df['_value'].rolling(window=30, center=True).mean()
+foo_df['_value'] = foo_df['_value'].rolling(window=10, center=True).mean()
+
+# foo_df
+
+
+# plot _value vs date
+# fig = px.line(foo_df, x='date', y="_value")
+# fig.show()
+
+
+# %%
+
+
+years = [2020, 2021] # foo_df['date'].dt.year.unique()
+# fig = make_subplots(rows=len(years), cols=1, subplot_titles=years)
+
+# def display_year(data, year: int = None, fig=None, row: int = None):
+def display_year(data, year: int, fig=None, row: int = None):
+    # if year is None:
+    #     year = datetime.datetime.now().year
+
+    d1 = datetime.date(year, 1, 1)
+    d2 = datetime.date(year, 12, 31)
+    delta = d2 - d1
+
+    month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    month_days =   [31,    28,    31,     30,    31,     30,    31,    31,    30,    31,    30,    31]
+    # create month_starts as datetimes
+    month_starts = [datetime.date(year, i+1, 1) for i in range(12)]
+    # month_starts = [0] + list(np.cumsum(month_days)[:-1])
+    # month_ends = np.cumsum(month_days)
+    # month_positions = (np.cumsum(month_days) - 15)/7
+    month_positions = (np.cumsum(month_days) - 15)
+    # print(month_positions)
+    dates_in_year = [d1 + datetime.timedelta(i) for i in range(delta.days+1)] # gives me a list with datetimes for each day a year
+    weekdays_in_year = [i.weekday() for i in dates_in_year] # gives [0,1,2,3,4,5,6,0,1,2,3,4,5,6,…] (ticktext in xaxis dict translates this to weekdays
+
+    weeknumber_of_dates = [int(i.strftime("%V")) if not (int(i.strftime("%V")) == 1 and i.month == 12) else 53
+                           for i in dates_in_year] # gives [1,1,1,1,1,1,1,2,2,2,2,2,2,2,…] name is self-explanatory
+    text = [str(i) for i in dates_in_year] # gives something like list of strings like ‘2018-01-25’ for each date. Used in data trace to make good hovertext.
+    #4cc417 green #347c17 dark green
+    colorscale=[[False, '#eeeeee'], [True, '#76cf63']]
+
+    # handle end of year
+
+    y = foo_df.loc[foo_df['date'].dt.year == year, '_value']
+    y_max = y.max()
+
+    # plot line _value
+    data = [
+        go.Scatter(
+            x=foo_df.loc[foo_df['date'].dt.year == year, 'date'],
+            y=y,
+            # y=foo_df['_value'],
+            mode='lines',
+            line=dict(
+                color='blue',
+                width=1,
+            ),
+            hoverinfo='text',
+        )
+    ]
+
+    # plot a green vertical line for dates where the column text is not null
+    data += [
+        go.Scatter(
+            x=foo_df.loc[(foo_df['date'].dt.year == year) & (foo_df['text'].notnull()), 'date'],
+            y=[0]*foo_df.loc[(foo_df['date'].dt.year == year) & (foo_df['text'].notnull()), 'date'].shape[0],
+            mode='markers',
+            marker=dict(
+                color='green',
+                size=10,
+                symbol='arrow',
+            ),
+            # add title as hover text
+            text=foo_df.loc[(foo_df['date'].dt.year == year) & (foo_df['text'].notnull()), 'title'],
+            hoverinfo='text',
+            # hoverinfo='skip'
+        )
+    ]
+    
+
+    layout = go.Layout(
+        # title='activity chart',
+        height=250,
+        font={'size':10, 'color':'#9e9e9e'},
+        plot_bgcolor=('#fff'),
+        margin = dict(t=40),
+        showlegend=False
+    )
+
+    # show month_starts as vertical lines
+    for month_start in month_starts:
+        data += [
+            go.Scatter(
+                x=[month_start, month_start],
+                y=[0, y_max],
+                mode='lines',
+                line=dict(
+                    color='red',
+                    width=1
+                ),
+                hoverinfo='skip'
+            )
+        ]
+
+
+    if fig is None:
+        fig = go.Figure(data=data, layout=layout)
+    else:
+        fig.add_traces(data, rows=[(row+1)]*len(data), cols=[1]*len(data))
+        fig.update_layout(layout)
+        fig.update_xaxes(layout['xaxis'])
+        fig.update_yaxes(layout['yaxis'])
+    
+    return fig
+
+
+# def display_years(data, z, years):
+def display_years(data, years):
+    fig = make_subplots(rows=len(years), cols=1, subplot_titles=years)
+    for i, year in enumerate(years):
+        # data = z[i*365 : (i+1)*365]
+        display_year(data, year=year, fig=fig, row=i)
+        fig.update_layout(height=250*len(years))
+        
+    return fig
+
+
+# display_year(foo_df, year=2017, fig=None, row=None)
+display_years(foo_df, years=[2017, 2018])
+
+# fig
+
+# foo_df.loc[foo_df['is_update'], '_value'] = 10
+
+# foo_df['is_update'].dropna()
+
+# foo_df
+
+# df['_value'] = 10
+# # df
+
+# fig = px.line(df, x='date', y="_value")
+# fig.show()
