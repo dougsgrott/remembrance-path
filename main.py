@@ -14,6 +14,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import numpy as np
 from plotly.subplots import make_subplots
+import seaborn as sns
 
 
 # path_to_file = 'Relatos 2022 sample.txt'
@@ -238,6 +239,9 @@ for i, report in enumerate(report_list):
 
 df = pd.concat([r.to_df() for r in report_list], ignore_index=True)
 
+# Round date to day
+df['rounded_date'] = df['date'].dt.floor('d')
+
 df['length'] = df['text'].apply(len)
 
 # Bin the text length and convert to strings
@@ -257,6 +261,50 @@ length_bin_counts = length_bin_counts.sort_values('text_length_bin')
 # Convert intervals back to strings for plotting
 length_bin_counts['text_length_bin'] = length_bin_counts['text_length_bin'].astype(str)
 
+
+
+
+
+
+
+
+
+
+
+
+# %%
+
+min_date = df['rounded_date'].min()
+max_date = df['rounded_date'].max()
+# create a list of dates between min and max date
+date_range = pd.date_range(start=min_date, end=max_date, freq='D')
+date_df = pd.DataFrame(date_range, columns=['rounded_date'])
+
+# merge date_df with df
+foo_df = pd.merge(date_df, df, on='rounded_date', how='left')
+foo_df['_value'] = 0
+# where text is not null, set _value to 100
+foo_df.loc[foo_df['text'].notnull(), '_value'] = 100
+
+# apply rolling mean to _value
+# foo_df['_value'] = foo_df['_value'].rolling(window=7, center=True).mean()
+foo_df['_value'] = foo_df['_value'].rolling(window=30, center=True).mean()
+foo_df['_value'] = foo_df['_value'].rolling(window=10, center=True).mean()
+
+foo_df['year'] = foo_df['rounded_date'].dt.year
+# create a column equals to 'rounded_date', but change the year to 2000
+foo_df['date_2000'] = foo_df['rounded_date'].apply(lambda x: x.replace(year=2000))
+
+# foo_df
+
+
+# plot _value vs date
+# fig = px.line(foo_df, x='date', y="_value")
+# fig.show()
+
+
+
+
 # %%
 
 # plot histogram of text length
@@ -268,240 +316,88 @@ df['length'].hist(bins=50)
 #                    Plot value counts of is_update
 # #######################################################################
 
-fig, axes = plt.subplots(figsize=(6,3))
-df['is_update'].value_counts().plot(kind='bar')
-# add number to the bar
-for i, v in enumerate(df['is_update'].value_counts()):
-    plt.text(i, v + 5, str(v), ha='center')
+def plot_main_vs_update(df):
+    fig, axes = plt.subplots(figsize=(6,3))
+    df['is_update'].value_counts().plot(kind='bar')
+    # add number to the bar
+    for i, v in enumerate(df['is_update'].value_counts()):
+        plt.text(i, v + 5, str(v), ha='center')
 
-axes.spines[['right', 'top']].set_visible(False)
-axes.set_xticklabels(axes.get_xticklabels(), rotation=0, ha='right')
+    axes.spines[['right', 'top']].set_visible(False)
+    axes.set_xticklabels(axes.get_xticklabels(), rotation=0, ha='right')
+    return fig
+
+plot_main_vs_update(df)
 
 # %%
 # %% ####################################################################
 #                    Text Length Distribution
 # #######################################################################
 
-fig=go.Figure()
-fig.add_trace(
-    go.Bar(
-        x=df['length_bin'],
-        y=np.ones(df['length_bin'].shape[0]),
-        hovertext=df['title'],  # Add title as hover text
-        hoverinfo='text',  # Display only the hover text
+def plotly_text_length_dist(df):
 
-        marker=dict(
-            color=df['length'],  # Use text length for color
-            colorscale='Viridis',  # Choose a colorscale
-            colorbar=dict(title='Text Length')  # Add a colorbar
-        ),
+    fig=go.Figure()
+    fig.add_trace(
+        go.Bar(
+            x=df['length_bin'],
+            y=np.ones(df['length_bin'].shape[0]),
+            hovertext=df['title'],  # Add title as hover text
+            hoverinfo='text',  # Display only the hover text
 
-        # add red line width if is update
-        marker_line_width=df['is_update'].map({True: 2, False: 0}),
-        marker_line_color='red',
+            marker=dict(
+                color=df['length'],  # Use text length for color
+                colorscale='Viridis',  # Choose a colorscale
+                colorbar=dict(title='Text Length')  # Add a colorbar
+            ),
+
+            # add red line width if is update
+            marker_line_width=df['is_update'].map({True: 2, False: 0}),
+            marker_line_color='red',
+        )
     )
-)
 
-fig.update_layout(
-    barmode="stack",
-    title='Text Length Distribution',
-    title_x=0.5,
-    xaxis=dict(
-        categoryorder='array',
-        categoryarray=length_bin_counts['text_length_bin'].tolist(),
-        # categoryarray=df['length_bin'].tolist(),
-    ),
-    # yaxis=dict(visible=False),
-)
+    fig.update_layout(
+        barmode="stack",
+        title='Text Length Distribution',
+        title_x=0.5,
+        xaxis=dict(
+            categoryorder='array',
+            categoryarray=length_bin_counts['text_length_bin'].tolist(),
+            # categoryarray=df['length_bin'].tolist(),
+        ),
+        # yaxis=dict(visible=False),
+    )
+    return fig
 
-# %%
+plotly_text_length_dist(df)
+
 
 # %% ####################################################################
-#                    .
+#                    Gitlike-Heatmap-Calplot
 # #######################################################################
 
+years = [2015, 2020, 2021]
 
-# import datetime
-# import plotly.graph_objs as go
-# import numpy as np
-# from plotly.subplots import make_subplots
-
-# def display_year(z,
-#                  year: int = None,
-#                  month_lines: bool = True,
-#                  fig=None,
-#                  row: int = None):
-    
-#     if year is None:
-#         year = datetime.datetime.now().year
-    
-#     data = np.ones(365) * np.nan
-#     data[:len(z)] = z
-    
-
-#     d1 = datetime.date(year, 1, 1)
-#     d2 = datetime.date(year, 12, 31)
-
-#     delta = d2 - d1
-    
-#     month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-#     month_days =   [31,    28,    31,     30,    31,     30,    31,    31,    30,    31,    30,    31]
-#     month_positions = (np.cumsum(month_days) - 15)/7
-
-#     dates_in_year = [d1 + datetime.timedelta(i) for i in range(delta.days+1)] #gives me a list with datetimes for each day a year
-#     weekdays_in_year = [i.weekday() for i in dates_in_year] #gives [0,1,2,3,4,5,6,0,1,2,3,4,5,6,…] (ticktext in xaxis dict translates this to weekdays
-    
-#     weeknumber_of_dates = [int(i.strftime("%V")) if not (int(i.strftime("%V")) == 1 and i.month == 12) else 53
-#                            for i in dates_in_year] #gives [1,1,1,1,1,1,1,2,2,2,2,2,2,2,…] name is self-explanatory
-#     text = [str(i) for i in dates_in_year] #gives something like list of strings like ‘2018-01-25’ for each date. Used in data trace to make good hovertext.
-#     #4cc417 green #347c17 dark green
-#     colorscale=[[False, '#eeeeee'], [True, '#76cf63']]
-    
-#     # handle end of year
-    
-
-#     data = [
-#         go.Heatmap(
-#             x=weeknumber_of_dates,
-#             y=weekdays_in_year,
-#             z=data,
-#             text=text,
-#             hoverinfo='text',
-#             xgap=3, # this
-#             ygap=3, # and this is used to make the grid-like apperance
-#             showscale=False,
-#             colorscale=colorscale
-#         )
-#     ]
-    
-        
-#     if month_lines:
-#         kwargs = dict(
-#             mode='lines',
-#             line=dict(
-#                 color='#9e9e9e',
-#                 width=1
-#             ),
-#             hoverinfo='skip'
-            
-#         )
-#         for date, dow, wkn in zip(dates_in_year,
-#                                   weekdays_in_year,
-#                                   weeknumber_of_dates):
-#             if date.day == 1:
-#                 data += [
-#                     go.Scatter(
-#                         x=[wkn-.5, wkn-.5],
-#                         y=[dow-.5, 6.5],
-#                         **kwargs
-#                     )
-#                 ]
-#                 if dow:
-#                     data += [
-#                     go.Scatter(
-#                         x=[wkn-.5, wkn+.5],
-#                         y=[dow-.5, dow - .5],
-#                         **kwargs
-#                     ),
-#                     go.Scatter(
-#                         x=[wkn+.5, wkn+.5],
-#                         y=[dow-.5, -.5],
-#                         **kwargs
-#                     )
-#                 ]
-                    
-                    
-#     layout = go.Layout(
-#         title='activity chart',
-#         height=250,
-#         yaxis=dict(
-#             showline=False, showgrid=False, zeroline=False,
-#             tickmode='array',
-#             ticktext=['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-#             tickvals=[0, 1, 2, 3, 4, 5, 6],
-#             autorange="reversed"
-#         ),
-#         xaxis=dict(
-#             showline=False, showgrid=False, zeroline=False,
-#             tickmode='array',
-#             ticktext=month_names,
-#             tickvals=month_positions
-#         ),
-#         font={'size':10, 'color':'#9e9e9e'},
-#         plot_bgcolor=('#fff'),
-#         margin = dict(t=40),
-#         showlegend=False
-#     )
-
-#     if fig is None:
-#         fig = go.Figure(data=data, layout=layout)
-#     else:
-#         fig.add_traces(data, rows=[(row+1)]*len(data), cols=[1]*len(data))
-#         fig.update_layout(layout)
-#         fig.update_xaxes(layout['xaxis'])
-#         fig.update_yaxes(layout['yaxis'])
-    
-#     return fig
-
-
-# def display_years(z, years):
-#     fig = make_subplots(rows=len(years), cols=1, subplot_titles=years)
-#     for i, year in enumerate(years):
-#         data = z[i*365 : (i+1)*365]
-#         display_year(data, year=year, fig=fig, row=i)
-#         fig.update_layout(height=250*len(years))
-        
-#     return fig
-
-    
-# z = np.random.randint(2, size=(500,))
-
-# display_years(z, (2020,))
-
-# from plotly_calplot import calplot
-
-# fig = calplot(df, x="date", y="length")
-# fig.show()
-# # you can also adjust layout and your usual plotly stuff
+from plotly_calplot import calplot
+fig = calplot(
+    data=foo_df.loc[foo_df['rounded_date'].dt.year.isin(years)],
+    x="rounded_date",
+    y="_value",
+    gap=1,
+    # dark_theme=True,
+    text="title",
+    title="Activity Chart",
+    # space_between_plots=0.08,
+)
+fig.update_layout(title_x=0.5)
+fig.show()
 
 
 
-# %%
 
-hourless_df = df.copy()
-hourless_df['date'] = hourless_df['date'].dt.floor('d')
-
-
-min_date = hourless_df['date'].min()
-max_date = hourless_df['date'].max()
-# create a list of dates between min and max date
-date_range = pd.date_range(start=min_date, end=max_date, freq='D')
-date_df = pd.DataFrame(date_range, columns=['date'])
-
-# merge date_df with df
-foo_df = pd.merge(date_df, hourless_df, on='date', how='left')
-foo_df['_value'] = 0
-# where text is not null, set _value to 1
-foo_df.loc[foo_df['text'].notnull(), '_value'] = 100
-
-# apply rolling mean to _value
-# foo_df['_value'] = foo_df['_value'].rolling(window=7, center=True).mean()
-foo_df['_value'] = foo_df['_value'].rolling(window=30, center=True).mean()
-foo_df['_value'] = foo_df['_value'].rolling(window=10, center=True).mean()
-
-foo_df['year'] = foo_df['date'].dt.year
-# create a column equals to 'date', but change the year to 2000
-foo_df['date_2000'] = foo_df['date'].apply(lambda x: x.replace(year=2000))
-
-# foo_df
-
-
-# plot _value vs date
-# fig = px.line(foo_df, x='date', y="_value")
-# fig.show()
-
-
-# %%
+# %% ####################################################################
+#                    WIP
+# #######################################################################
 
 
 years = [2020, 2021] # foo_df['date'].dt.year.unique()
@@ -624,107 +520,45 @@ def display_years(data, years):
 # display_year(foo_df, year=2017, fig=None, row=None)
 display_years(foo_df, years=[2017, 2018, 2019, 2020, 2021])
 
-# fig
-
-# foo_df.loc[foo_df['is_update'], '_value'] = 10
-
-# foo_df['is_update'].dropna()
-
-# foo_df
-
-# df['_value'] = 10
-# # df
-
-# fig = px.line(df, x='date', y="_value")
-# fig.show()
-
-# %%
-
-import numpy as np
-import pandas as pd
-import seaborn as sns
-import matplotlib.pyplot as plt
-# sns.set_theme(style="white", rc={"axes.facecolor": (0, 0, 0, 0)})
-
-# Create the data
-rs = np.random.RandomState(1979)
-x = rs.randn(500)
-g = np.tile(list("ABCDEFGHIJ"), 50)
-df = pd.DataFrame(dict(x=x, g=g))
-m = df.g.map(ord)
-df["x"] += m
-
-# Initialize the FacetGrid object
-pal = sns.cubehelix_palette(10, rot=-.25, light=.7)
-g = sns.FacetGrid(df, row="g", hue="g", aspect=15, height=.5, palette=pal)
-
-# Draw the densities in a few steps
-# g.map(sns.kdeplot, "x", bw_adjust=.5, clip_on=False, fill=True, alpha=1, linewidth=1.5)
-# g.map(sns.kdeplot, "x", clip_on=False, color="w", lw=2, bw_adjust=.5)
-
-# passing color=None to refline() uses the hue mapping
-g.refline(y=0, linewidth=2, linestyle="-", color=None, clip_on=False)
 
 
-# Define and use a simple function to label the plot in axes coordinates
-def label(x, color, label):
-    ax = plt.gca()
-    ax.text(0, .2, label, fontweight="bold", color=color, ha="left", va="center", transform=ax.transAxes)
 
+# %% ####################################################################
+#                    Aesthetic timeline
+# #######################################################################
 
-# g.map(label, "x")
+def aesthetic_timeline(df):
 
-# Set the subplots to overlap
-g.figure.subplots_adjust(hspace=-.25)
+    # plot lineplot of _value vs date for 2020 using seaborn
+    years = sorted(df['year'].unique())
+    pal = sns.cubehelix_palette(len(years), rot=-.25, light=.7)
+    month_middle = [datetime.date(2000, i+1, 15) for i in range(12)]
+    month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    fig, axes = plt.subplots(nrows=len(years), figsize=(10, 10), sharex=True, sharey=True)
 
-# Remove axes details that don't play well with overlap
-# g.set_titles("")
-# g.set(yticks=[], ylabel="")
-# g.despine(bottom=True, left=True)
+    for i, year in enumerate(years):
+        sns.lineplot(data=df.loc[df['year'] == year], x='date_2000', y='_value', ax=axes[i], color=pal[i])
+        axes[i].fill_between(df.loc[df['year'] == year]['date_2000'], df.loc[df['year'] == year]['_value'], alpha=1, color=pal[i])
+        sns.lineplot(data=df.loc[df['year'] == year], x='date_2000', y='_value', ax=axes[i], color='white', linewidth=2)
+        axes[i].set_xlabel('')
+        axes[i].spines['right'].set_visible(False)
+        axes[i].spines['left'].set_visible(False)
+        axes[i].spines['top'].set_visible(False)
+        axes[i].spines['bottom'].set_color(pal[i])
+        axes[i].text(-0.01, .2, year, fontweight="bold", color=pal[i], ha="left", va="center", transform=axes[i].transAxes)
+        axes[i].set_yticks([])
+        axes[i].set_yticklabels([])
+        axes[i].set_ylabel('')
+        # set xticks to month names
+        axes[i].set_xticks(month_middle)
+        # axes[i].set_xticklabels(month_names)
+        # use the month names as xticks
+        axes[i].set_xticklabels(month_names)
 
-# %%
+    plt.subplots_adjust(hspace=-.25)
+    return fig
 
-# Initialize the FacetGrid object
-# pal = sns.cubehelix_palette(10, rot=-.25, light=.7)
-# # g = sns.FacetGrid(df, row="g", hue="g", aspect=15, height=.5, palette=pal)
-# g = sns.FacetGrid(foo_df, row="year", hue="year", aspect=15, height=.5, palette=pal)
-
-# # Draw the densities in a few steps
-# # g.map(sns.kdeplot, "x", bw_adjust=.5, clip_on=False, fill=True, alpha=1, linewidth=1.5)
-# g.map(sns.lineplot, "date", "_value")#, bw_adjust=.5, clip_on=False, fill=True, alpha=1, linewidth=1.5)
-
-# g.map(sns.kdeplot, "x", clip_on=False, color="w", lw=2, bw_adjust=.5)
-
-
-# %%
-
-# plot lineplot of _value vs date for 2020 using seaborn
-years = sorted(foo_df['year'].unique())
-pal = sns.cubehelix_palette(len(years), rot=-.25, light=.7)
-month_middle = [datetime.date(2000, i+1, 15) for i in range(12)]
-month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-fig, axes = plt.subplots(nrows=len(years), figsize=(10, 10), sharex=True, sharey=True)
-
-for i, year in enumerate(years):
-    sns.lineplot(data=foo_df.loc[foo_df['year'] == year], x='date_2000', y='_value', ax=axes[i], color=pal[i])
-    axes[i].fill_between(foo_df.loc[foo_df['year'] == year]['date_2000'], foo_df.loc[foo_df['year'] == year]['_value'], alpha=1, color=pal[i])
-    sns.lineplot(data=foo_df.loc[foo_df['year'] == year], x='date_2000', y='_value', ax=axes[i], color='white', linewidth=2)
-    axes[i].set_xlabel('')
-    axes[i].spines['right'].set_visible(False)
-    axes[i].spines['left'].set_visible(False)
-    axes[i].spines['top'].set_visible(False)
-    axes[i].spines['bottom'].set_color(pal[i])
-    axes[i].text(-0.01, .2, year, fontweight="bold", color=pal[i], ha="left", va="center", transform=axes[i].transAxes)
-    axes[i].set_yticks([])
-    axes[i].set_yticklabels([])
-    axes[i].set_ylabel('')
-    # set xticks to month names
-    axes[i].set_xticks(month_middle)
-    # axes[i].set_xticklabels(month_names)
-    # use the month names as xticks
-    axes[i].set_xticklabels(month_names)
-
-plt.subplots_adjust(hspace=-.25)
+aesthetic_timeline(foo_df)
 
 
 # %%
